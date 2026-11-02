@@ -38,6 +38,16 @@ npm run prisma:generate
 npm start
 ```
 
+In production, run it with pm2 instead of `npm start`:
+
+```bash
+npm ci
+npx prisma generate
+pm2 startOrReload ecosystem.config.cjs
+pm2 save
+pm2 logs crew-connect-jobs
+```
+
 Until an app's key is set, the worker stays up, writes reminder rows, and leaves that app's push rows `pending`. For example, with only the crew key, crew pushes go out and user pushes wait until the user key is added.
 
 ## Push payload
