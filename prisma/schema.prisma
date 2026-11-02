@@ -1,0 +1,169 @@
+// Read/write models for the shared Crew Connect database.
+// Migrations live in CREW_CONNECT_API. Do not run `prisma migrate` in this repo.
+// After the API migration is applied: npm run prisma:generate
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthSubjectType {
+  user
+  crew
+  admin
+}
+
+enum BookingStatus {
+  cart
+  created
+  confirmed
+  crew_assigned
+  in_progress
+  completed
+  cancelled
+}
+
+enum AssignmentStatus {
+  assigned
+  confirmed
+  cancelled_by_crew
+  no_show
+  in_progress
+  completed
+  removed_by_admin
+}
+
+enum NotificationType {
+  booking_confirmed
+  crew_on_the_way
+  rate_experience
+  new_job_request
+  offer
+  reminder
+  job_accepted
+  crew_assigned
+  booking_cancelled
+  profile_approved
+  profile_rejected
+  payout_processed
+  payout_failed
+  payout_reversed
+}
+
+enum NotificationPushStatus {
+  pending
+  processing
+  sent
+  failed
+  skipped
+}
+
+enum ReminderRecipientType {
+  user
+  crew
+}
+
+enum ReminderType {
+  ONE_DAY_BEFORE   @map("1_day_before")
+  TWO_HOURS_BEFORE @map("2_hours_before")
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+  cancelled
+}
+
+model User {
+  id                       Int       @id @default(autoincrement())
+  isActive                 Boolean   @map("is_active")
+  pushNotificationsEnabled Boolean   @map("push_notifications_enabled")
+  deletedAt                DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
+
+model CrewMember {
+  id        Int       @id @default(autoincrement())
+  isActive  Boolean   @map("is_active")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("crew_members")
+}
+
+model Device {
+  id          Int             @id @default(autoincrement())
+  subjectType AuthSubjectType @map("subject_type")
+  subjectId   Int             @map("subject_id")
+  pnid        String          @db.VarChar(512)
+
+  @@index([subjectType, subjectId])
+  @@map("devices")
+}
+
+model Booking {
+  id               Int           @id @default(autoincrement())
+  bookingReference String        @map("booking_reference") @db.VarChar(20)
+  venueName        String?       @map("venue_name") @db.VarChar(200)
+  status           BookingStatus
+
+  scheduledReminders ScheduledReminder[]
+
+  @@map("bookings")
+}
+
+model EventCrewAssignment {
+  id        Int              @id @default(autoincrement())
+  bookingId Int              @map("booking_id")
+  crewId    Int              @map("crew_id")
+  status    AssignmentStatus
+
+  @@index([bookingId])
+  @@map("event_crew_assignments")
+}
+
+model ScheduledReminder {
+  id            Int                   @id @default(autoincrement())
+  bookingId     Int                   @map("booking_id")
+  recipientType ReminderRecipientType @map("recipient_type")
+  recipientId   Int                   @map("recipient_id")
+  reminderType  ReminderType          @map("reminder_type")
+  scheduledAt   DateTime              @map("scheduled_at") @db.Timestamptz(6)
+  sentAt        DateTime?             @map("sent_at") @db.Timestamptz(6)
+  status        ReminderStatus        @default(pending)
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([status, scheduledAt])
+  @@map("scheduled_reminders")
+}
+
+model Notification {
+  id                  Int                     @id @default(autoincrement())
+  recipientType       AuthSubjectType         @map("recipient_type")
+  recipientId         Int                     @map("recipient_id")
+  title               String                  @db.VarChar(200)
+  body                String
+  type                NotificationType
+  referenceEntityType String?                 @map("reference_entity_type") @db.VarChar(50)
+  referenceEntityId   Int?                    @map("reference_entity_id")
+  data                Json?
+  isRead              Boolean                 @default(false) @map("is_read")
+  pushStatus          NotificationPushStatus @default(pending) @map("push_status")
+  pushAttempts        Int                     @default(0) @map("push_attempts")
+  pushLockedAt        DateTime?               @map("push_locked_at") @db.Timestamptz(6)
+  pushNextAttemptAt   DateTime?               @map("push_next_attempt_at") @db.Timestamptz(6)
+  pushSentAt          DateTime?               @map("push_sent_at") @db.Timestamptz(6)
+  pushError           String?                 @map("push_error") @db.VarChar(500)
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([pushStatus, createdAt])
+  @@map("notifications")
+}
