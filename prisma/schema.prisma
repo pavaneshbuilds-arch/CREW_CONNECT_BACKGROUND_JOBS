@@ -25,6 +25,7 @@ enum BookingStatus {
   in_progress
   completed
   cancelled
+  expired
 }
 
 enum AssignmentStatus {
@@ -47,6 +48,7 @@ enum NotificationType {
   job_accepted
   crew_assigned
   booking_cancelled
+  booking_expired
   profile_approved
   profile_rejected
   payout_processed
@@ -79,6 +81,14 @@ enum ReminderStatus {
   cancelled
 }
 
+enum PaymentStatus {
+  initiated
+  processing
+  success
+  failed
+  refunded
+}
+
 model User {
   id                       Int       @id @default(autoincrement())
   isActive                 Boolean   @map("is_active")
@@ -108,13 +118,30 @@ model Device {
 
 model Booking {
   id               Int           @id @default(autoincrement())
+  userId           Int           @map("user_id")
   bookingReference String        @map("booking_reference") @db.VarChar(20)
   venueName        String?       @map("venue_name") @db.VarChar(200)
+  couponId         Int?          @map("coupon_id")
   status           BookingStatus
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  payments           Payment[]
   scheduledReminders ScheduledReminder[]
 
   @@map("bookings")
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  bookingId Int           @map("booking_id")
+  status    PaymentStatus
+  createdAt DateTime      @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("payments")
 }
 
 model EventCrewAssignment {

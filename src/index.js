@@ -1,6 +1,7 @@
 import config from './config/env.js';
 import { prisma } from './config/prisma.js';
 import { configuredAudiences } from './fcm.js';
+import { expireUnpaidCheckouts } from './jobs/expireUnpaidCheckouts.js';
 import { dispatchDueReminders } from './jobs/reminders.js';
 import { sendPendingPushes } from './jobs/push.js';
 import logger from './utils/logger.js';
@@ -12,6 +13,7 @@ function sleep(ms) {
 }
 
 async function tick() {
+  await expireUnpaidCheckouts();
   await dispatchDueReminders();
   await sendPendingPushes();
 }

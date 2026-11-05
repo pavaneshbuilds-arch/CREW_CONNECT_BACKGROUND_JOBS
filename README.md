@@ -7,6 +7,7 @@ Node worker that shares the Crew Connect PostgreSQL database. The API inserts a 
 | When | Who | Type |
 |---|---|---|
 | Booking payment confirms | Organizer, and approved crew who can take an open role | `booking_confirmed`, `new_job_request` |
+| Created checkout still unpaid after 30 minutes | Organizer | `booking_expired` |
 | Crew accepts a job | Organizer | `job_accepted`, and `crew_assigned` when every slot is filled |
 | Crew starts a shift | Organizer | `crew_on_the_way` |
 | Whole booking is completed | Organizer | `rate_experience` |
